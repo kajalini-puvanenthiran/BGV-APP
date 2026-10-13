@@ -50,6 +50,7 @@ export default function Checklist() {
     setCandidates,
     selectCandidateAndClient,
     getClientCheckIds,
+    setClientChecklists,
   } = useStore();
   const { width } = useWindowDimensions();
   const columns = width > 1250 ? 3 : width > 720 ? 2 : 1;
@@ -67,6 +68,7 @@ export default function Checklist() {
   const [editEnabled, setEditEnabled] = useState(true);
   const [editRequired, setEditRequired] = useState(true);
   const [editError, setEditError] = useState("");
+  const [deletingCheck, setDeletingCheck] = useState<Check | null>(null);
   const [select, setSelect] = useState(false);
   const [remove, setRemove] = useState<Upload | null>(null);
   const [previewFile, setPreviewFile] = useState<Upload | null>(null);
@@ -397,12 +399,20 @@ export default function Checklist() {
                     dot={false}
                   />
                   {role === "Admin" && (
-                    <IconButton
-                      name="create-outline"
-                      size={16}
-                      label={`Edit ${c.title}`}
-                      onPress={() => openEdit(c)}
-                    />
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+                      <IconButton
+                        name="create-outline"
+                        size={16}
+                        label={`Edit ${c.title}`}
+                        onPress={() => openEdit(c)}
+                      />
+                      <IconButton
+                        name="trash-outline"
+                        size={16}
+                        label={`Delete ${c.title}`}
+                        onPress={() => setDeletingCheck(c)}
+                      />
+                    </View>
                   )}
                 </View>
               </View>
@@ -664,47 +674,112 @@ export default function Checklist() {
             trackColor={{ false: p.border, true: p.green }}
           />
         </View>
-        {!!editError && <T style={{ color: p.danger }}>{editError}</T>}
-        <Button
-          label="Save checklist item"
-          onPress={() => {
-            const docs = [
-              ...new Set(
-                editDocuments
-                  .split("\n")
-                  .map((s) => s.trim())
-                  .filter(Boolean),
-              ),
-            ];
-            if (!editTitle.trim() || !docs.length) {
-              setEditError(
-                "Add a check name and at least one document requirement.",
-              );
-              return;
-            }
-            if (edit && role === "Admin") {
-              const updated = {
-                ...edit,
-                title: editTitle.trim(),
-                documents: docs,
-                enabled: editEnabled,
-                required: editRequired,
-              };
-              setChecks((cs) =>
-                cs.some((c) => c.id === edit.id)
-                  ? cs.map((c) => (c.id === edit.id ? updated : c))
-                  : [...cs, updated],
-              );
-              if (!checks.some((c) => c.id === edit.id))
-                setCandidates((cs) =>
-                  cs.map((c) => ({ ...c, checks: [...c.checks, updated.id] })),
+        <View style={{ gap: 8, marginTop: 8 }}>
+          <Button
+            label="Save checklist item"
+            onPress={() => {
+              const docs = [
+                ...new Set(
+                  editDocuments
+                    .split("\n")
+                    .map((s) => s.trim())
+                    .filter(Boolean),
+                ),
+              ];
+              if (!editTitle.trim() || !docs.length) {
+                setEditError(
+                  "Add a check name and at least one document requirement.",
                 );
-              log("Checklist updated", updated.title, "list-outline");
-              toast("Checklist updated across the workspace.");
-              setEdit(null);
-            }
-          }}
-        />
+                return;
+              }
+              if (edit && role === "Admin") {
+                const updated = {
+                  ...edit,
+                  title: editTitle.trim(),
+                  documents: docs,
+                  enabled: editEnabled,
+                  required: editRequired,
+                };
+                setChecks((cs) =>
+                  cs.some((c) => c.id === edit.id)
+                    ? cs.map((c) => (c.id === edit.id ? updated : c))
+                    : [...cs, updated],
+                );
+                if (!checks.some((c) => c.id === edit.id))
+                  setCandidates((cs) =>
+                    cs.map((c) => ({ ...c, checks: [...c.checks, updated.id] })),
+                  );
+                log("Checklist updated", updated.title, "list-outline");
+                toast("Checklist updated across the workspace.");
+                setEdit(null);
+              }
+            }}
+          />
+          {checks.some((c) => c.id === edit?.id) && (
+            <Button
+              label="Delete checklist item"
+              variant="danger"
+              icon="trash-outline"
+              onPress={() => {
+                const toDelete = edit;
+                setEdit(null);
+                setDeletingCheck(toDelete);
+              }}
+            />
+          )}
+        </View>
+      </Dialog>
+      {/* ── Delete checklist item confirmation dialog ─────────────────────── */}
+      <Dialog
+        visible={!!deletingCheck}
+        onClose={() => setDeletingCheck(null)}
+        title="Delete checklist item?"
+        description={deletingCheck?.title}
+      >
+        <T muted style={{ fontSize: 13, lineHeight: 20 }}>
+          Are you sure you want to delete <T weight="semibold">{deletingCheck?.title}</T>? This check will be permanently removed from all candidate verifications and client checklist workflows across the workspace.
+        </T>
+        <View style={{ flexDirection: "row", gap: 10, justifyContent: "flex-end", marginTop: 16 }}>
+          <Button
+            label="Cancel"
+            variant="secondary"
+            onPress={() => setDeletingCheck(null)}
+          />
+          <Button
+            label="Delete check"
+            variant="danger"
+            icon="trash-outline"
+            onPress={async () => {
+              if (!deletingCheck) return;
+              const checkId = deletingCheck.id;
+              const checkTitle = deletingCheck.title;
+              const relatedUploads = uploads.filter((u) => u.checkId === checkId);
+              for (const u of relatedUploads) {
+                try {
+                  await removeDocument(u.id);
+                } catch {}
+              }
+              setUploads((us) => us.filter((u) => u.checkId !== checkId));
+              setChecks((cs) => cs.filter((c) => c.id !== checkId));
+              setCandidates((cs) =>
+                cs.map((c) => ({
+                  ...c,
+                  checks: c.checks.filter((id) => id !== checkId),
+                })),
+              );
+              setClientChecklists((prev) => {
+                const next = { ...prev };
+                Object.keys(next).forEach((k) => {
+                  next[k] = next[k].filter((id) => id !== checkId);
+                });
+                return next;
+              });
+              log("Checklist item deleted", checkTitle, "trash-outline", p.danger);
+              toast(`Checklist item "${checkTitle}" was deleted.`);
+              setDeletingCheck(null);
+            }}
+          />
+        </View>
       </Dialog>
       <CandidateSelectDialog
         visible={select}

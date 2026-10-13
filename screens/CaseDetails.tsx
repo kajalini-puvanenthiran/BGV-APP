@@ -28,6 +28,8 @@ import { navigateTo } from "../lib/navigation";
 import { openDocument, saveDocument, removeDocument } from "../lib/files";
 import { DocumentPreviewDialog } from "../components/DocumentPreviewDialog";
 import { DocumentEditDialog } from "../components/DocumentEditDialog";
+import { EditCandidateDialog } from "../components/EditCandidateDialog";
+import { DeleteCandidateDialog } from "../components/DeleteCandidateDialog";
 
 export default function CaseDetails({ route, navigation }: any) {
   const {
@@ -71,6 +73,8 @@ export default function CaseDetails({ route, navigation }: any) {
   const [search, setSearch] = useState("");
   const [previewFile, setPreviewFile] = useState<Upload | null>(null);
   const [editFile, setEditFile] = useState<Upload | null>(null);
+  const [editCandidateOpen, setEditCandidateOpen] = useState(false);
+  const [deleteCandidateOpen, setDeleteCandidateOpen] = useState(false);
 
   if (!candidate) {
     return (
@@ -336,11 +340,29 @@ export default function CaseDetails({ route, navigation }: any) {
           title={candidate.name}
           description={`${candidate.position} · ${candidate.company}`}
           actions={
-            <Button
-              label={role === "Client" ? "View documents" : "Upload documents"}
-              icon="documents-outline"
-              onPress={openChecklistWorkspace}
-            />
+            <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <Button
+                label={role === "Client" ? "View documents" : "Upload documents"}
+                icon="documents-outline"
+                onPress={openChecklistWorkspace}
+              />
+              {role !== "Candidate" && (
+                <>
+                  <Button
+                    label="Edit candidate"
+                    icon="create-outline"
+                    variant="secondary"
+                    onPress={() => setEditCandidateOpen(true)}
+                  />
+                  <Button
+                    label="Delete case"
+                    icon="trash-outline"
+                    variant="danger"
+                    onPress={() => setDeleteCandidateOpen(true)}
+                  />
+                </>
+              )}
+            </View>
           }
         />
 
@@ -1055,6 +1077,21 @@ export default function CaseDetails({ route, navigation }: any) {
               setPreviewFile(updated);
             }
           }}
+        />
+
+        {/* Candidate Edit Dialog */}
+        <EditCandidateDialog
+          candidate={candidate}
+          visible={editCandidateOpen}
+          onClose={() => setEditCandidateOpen(false)}
+        />
+
+        {/* Candidate Delete Dialog */}
+        <DeleteCandidateDialog
+          candidate={candidate}
+          visible={deleteCandidateOpen}
+          onClose={() => setDeleteCandidateOpen(false)}
+          onDeleted={() => navigation.goBack()}
         />
       </Page>
     </SafeAreaView>

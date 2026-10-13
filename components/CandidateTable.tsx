@@ -10,12 +10,16 @@ export function CandidateTable({
   categorized = true,
   onSelect = openCase,
   onSelectCandidate,
+  onEdit,
+  onDelete,
 }: {
   items: Candidate[];
   compact?: boolean;
   categorized?: boolean;
   onSelect?: (id: string) => void;
   onSelectCandidate?: (id: string) => void;
+  onEdit?: (c: Candidate) => void;
+  onDelete?: (c: Candidate) => void;
 }) {
   const { palette: p, selectedCandidate } = useStore();
   const { width } = useWindowDimensions();
@@ -166,6 +170,44 @@ export function CandidateTable({
                 <T style={{ fontSize: 10, color: p.green }}>Select</T>
               </Pressable>
             ) : null}
+            {onEdit && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Edit ${c.name}`}
+                onPress={(e) => {
+                  e.stopPropagation?.();
+                  onEdit(c);
+                }}
+                style={({ hovered }: any) => ({
+                  paddingHorizontal: 7,
+                  paddingVertical: 4,
+                  borderRadius: 5,
+                  backgroundColor: hovered ? p.raised : "transparent",
+                  marginRight: 4,
+                })}
+              >
+                <Icon name="create-outline" size={14} color={p.muted} />
+              </Pressable>
+            )}
+            {onDelete && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Delete ${c.name}`}
+                onPress={(e) => {
+                  e.stopPropagation?.();
+                  onDelete(c);
+                }}
+                style={({ hovered }: any) => ({
+                  paddingHorizontal: 7,
+                  paddingVertical: 4,
+                  borderRadius: 5,
+                  backgroundColor: hovered ? p.danger + "20" : "transparent",
+                  marginRight: 6,
+                })}
+              >
+                <Icon name="trash-outline" size={14} color={p.danger} />
+              </Pressable>
+            )}
             <Icon name="chevron-forward" size={14} />
     </Pressable>
   );

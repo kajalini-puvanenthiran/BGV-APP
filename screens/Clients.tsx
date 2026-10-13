@@ -13,20 +13,27 @@ import {
   Dialog,
   Field,
   Empty,
+  IconButton,
 } from "../components/ui";
 import { CandidateTable } from "../components/CandidateTable";
 import { openCase } from "../lib/navigation";
+import { removeDocument } from "../lib/files";
 
 export default function Clients() {
   const {
     palette: p,
     role,
     candidates,
+    setCandidates,
     organizations,
     setOrganizations,
     checks,
     clientChecklists,
     setClientChecklists,
+    uploads,
+    setUploads,
+    selectedClient,
+    setSelectedClient,
     log,
     toast,
   } = useStore();
@@ -36,6 +43,12 @@ export default function Clients() {
   const [create, setCreate] = useState(false);
   const [name, setName] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
+
+  // organization edit & delete state
+  const [editOrg, setEditOrg] = useState<string | null>(null);
+  const [editOrgName, setEditOrgName] = useState("");
+  const [editOrgError, setEditOrgError] = useState("");
+  const [deleteOrg, setDeleteOrg] = useState<string | null>(null);
 
   // checklist editor state
   const [editClient, setEditClient] = useState<string | null>(null);
@@ -123,7 +136,25 @@ export default function Clients() {
                   >
                     <Icon name="business-outline" color={color} size={24} />
                   </View>
-                  <Badge label="Active" />
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+                    <Badge label="Active" />
+                    <IconButton
+                      name="create-outline"
+                      size={16}
+                      label={`Edit ${company} name`}
+                      onPress={() => {
+                        setEditOrg(company);
+                        setEditOrgName(company);
+                        setEditOrgError("");
+                      }}
+                    />
+                    <IconButton
+                      name="trash-outline"
+                      size={16}
+                      label={`Delete ${company}`}
+                      onPress={() => setDeleteOrg(company)}
+                    />
+                  </View>
                 </View>
                 <View style={{ gap: 5 }}>
                   <T weight="semibold" style={{ fontSize: 16 }}>
@@ -177,7 +208,7 @@ export default function Clients() {
                     </T>
                   </View>
                 </View>
-                <View style={{ gap: 10 }}>
+                <View style={{ gap: 8 }}>
                   <Button
                     label={`View ${company.split(" ")[0]} candidates`}
                     variant="secondary"
@@ -190,6 +221,30 @@ export default function Clients() {
                     icon="list-outline"
                     onPress={() => openChecklistEditor(company)}
                   />
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        label="Edit name"
+                        variant="secondary"
+                        icon="create-outline"
+                        small
+                        onPress={() => {
+                          setEditOrg(company);
+                          setEditOrgName(company);
+                          setEditOrgError("");
+                        }}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        label="Delete"
+                        variant="danger"
+                        icon="trash-outline"
+                        small
+                        onPress={() => setDeleteOrg(company)}
+                      />
+                    </View>
+                  </View>
                 </View>
               </Panel>
             );
@@ -412,6 +467,140 @@ export default function Clients() {
                 toast(`Checklist saved for ${editClient}.`);
               }
               setEditClient(null);
+            }}
+          />
+        </View>
+      </Dialog>
+
+      {/* ── Edit client organization dialog ──────────────────────────────── */}
+      <Dialog
+        visible={!!editOrg}
+        onClose={() => {
+          setEditOrg(null);
+          setEditOrgError("");
+        }}
+        title="Edit client organization"
+        description={`Update organization name for "${editOrg}"`}
+      >
+        <Field
+          label="Organization name"
+          accessibilityLabel="Edit organization name"
+          placeholder="e.g. Acme Corporation"
+          value={editOrgName}
+          onChangeText={setEditOrgName}
+        />
+        <T muted style={{ fontSize: 11 }}>
+          Updating this organization name will automatically rename it across all associated candidate verification cases and checklist configurations.
+        </T>
+        {!!editOrgError && (
+          <T style={{ color: p.danger, fontSize: 12 }}>{editOrgError}</T>
+        )}
+        <View style={{ flexDirection: "row", gap: 10, justifyContent: "flex-end" }}>
+          <Button
+            label="Cancel"
+            variant="secondary"
+            onPress={() => {
+              setEditOrg(null);
+              setEditOrgError("");
+            }}
+          />
+          <Button
+            label="Save changes"
+            icon="checkmark-outline"
+            onPress={() => {
+              const trimmed = editOrgName.trim();
+              if (!trimmed) {
+                setEditOrgError("Organization name cannot be empty.");
+                return;
+              }
+              if (!editOrg) return;
+              if (
+                trimmed.toLowerCase() !== editOrg.toLowerCase() &&
+                organizations.some((c) => c.toLowerCase() === trimmed.toLowerCase())
+              ) {
+                setEditOrgError("An organization with this name already exists.");
+                return;
+              }
+              if (trimmed !== editOrg) {
+                const oldName = editOrg;
+                setOrganizations((cs) => cs.map((c) => (c === oldName ? trimmed : c)));
+                setCandidates((cs) =>
+                  cs.map((c) => (c.company === oldName ? { ...c, company: trimmed } : c)),
+                );
+                setClientChecklists((prev) => {
+                  const next = { ...prev };
+                  if (next[oldName]) {
+                    next[trimmed] = next[oldName];
+                    delete next[oldName];
+                  }
+                  return next;
+                });
+                if (selectedClient === oldName) {
+                  setSelectedClient(trimmed);
+                }
+                log("Client updated", `${oldName} renamed to ${trimmed}`, "business-outline");
+                toast(`Client organization renamed to "${trimmed}".`);
+              }
+              setEditOrg(null);
+              setEditOrgError("");
+            }}
+          />
+        </View>
+      </Dialog>
+
+      {/* ── Delete client organization dialog ────────────────────────────── */}
+      <Dialog
+        visible={!!deleteOrg}
+        onClose={() => setDeleteOrg(null)}
+        title="Delete client organization?"
+        description={deleteOrg || ""}
+      >
+        <T muted style={{ fontSize: 13, lineHeight: 20 }}>
+          Are you sure you want to delete <T weight="semibold">{deleteOrg}</T>?
+          {(() => {
+            const count = candidates.filter((c) => c.company === deleteOrg).length;
+            return count > 0
+              ? ` All ${count} associated candidate verification case(s) and documents will also be permanently removed.`
+              : " This organization has no active verification cases.";
+          })()}
+        </T>
+        <View style={{ flexDirection: "row", gap: 10, justifyContent: "flex-end", marginTop: 16 }}>
+          <Button
+            label="Cancel"
+            variant="secondary"
+            onPress={() => setDeleteOrg(null)}
+          />
+          <Button
+            label="Delete organization"
+            variant="danger"
+            icon="trash-outline"
+            onPress={async () => {
+              if (!deleteOrg) return;
+              const target = deleteOrg;
+              const toDelete = candidates.filter((c) => c.company === target);
+              for (const c of toDelete) {
+                const cUploads = uploads.filter((u) => u.candidateId === c.id);
+                for (const u of cUploads) {
+                  try {
+                    await removeDocument(u.id);
+                  } catch {}
+                }
+              }
+              setOrganizations((cs) => cs.filter((c) => c !== target));
+              setCandidates((cs) => cs.filter((c) => c.company !== target));
+              setUploads((us) => us.filter((u) => !toDelete.some((c) => c.id === u.candidateId)));
+              setClientChecklists((prev) => {
+                const next = { ...prev };
+                delete next[target];
+                return next;
+              });
+              if (selectedClient === target) {
+                const remaining = organizations.filter((c) => c !== target);
+                setSelectedClient(remaining[0] || "");
+              }
+              log("Client deleted", target, "trash-outline", p.danger);
+              toast(`Client organization "${target}" was deleted.`);
+              setDeleteOrg(null);
             }}
           />
         </View>

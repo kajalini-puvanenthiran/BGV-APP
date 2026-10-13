@@ -15,6 +15,9 @@ import {
 import { CandidateTable } from "../components/CandidateTable";
 import { NewCaseDialog } from "../components/NewCaseDialog";
 import { CandidateSelectDialog } from "../components/CandidateSelectDialog";
+import { EditCandidateDialog } from "../components/EditCandidateDialog";
+import { DeleteCandidateDialog } from "../components/DeleteCandidateDialog";
+import { Candidate } from "../lib/data";
 
 export default function Candidates({
   verification = false,
@@ -39,6 +42,8 @@ export default function Candidates({
   const [page, setPage] = useState(0);
   const [newCase, setNewCase] = useState(false);
   const [selectCandidateOpen, setSelectCandidateOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Candidate | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Candidate | null>(null);
 
   const activeCandidate = candidates.find((c) => c.id === selectedCandidate);
 
@@ -220,6 +225,8 @@ export default function Candidates({
         <CandidateTable
           items={filtered.slice(current * 10, current * 10 + 10)}
           onSelectCandidate={selectCandidateAndClient}
+          onEdit={role !== "Candidate" ? (c) => setEditTarget(c) : undefined}
+          onDelete={role !== "Candidate" ? (c) => setDeleteTarget(c) : undefined}
         />
 
         <View
@@ -262,6 +269,16 @@ export default function Candidates({
         visible={selectCandidateOpen}
         onClose={() => setSelectCandidateOpen(false)}
         initialCompany={clientFilter !== "All clients" ? clientFilter : undefined}
+      />
+      <EditCandidateDialog
+        candidate={editTarget}
+        visible={!!editTarget}
+        onClose={() => setEditTarget(null)}
+      />
+      <DeleteCandidateDialog
+        candidate={deleteTarget}
+        visible={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
       />
     </Page>
   );
