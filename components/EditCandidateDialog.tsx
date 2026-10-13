@@ -1,9 +1,332 @@
 import React, { useEffect, useState } from "react";
-import { View, ScrollView, Pressable, Switch } from "react-native";
+import {
+  View,
+  ScrollView,
+  Pressable,
+  Switch,
+  TextInput,
+  Modal,
+} from "react-native";
 import { Candidate, CaseStatus } from "../lib/data";
 import { useStore } from "../lib/store";
 import { Dialog, Field, Button, T, Chips, Icon } from "./ui";
 
+/* ─── Searchable Client Dropdown ─────────────────────────────────────────── */
+export function ClientDropdown({
+  value,
+  organizations,
+  onSelect,
+  onCreateNew,
+}: {
+  value: string;
+  organizations: string[];
+  onSelect: (org: string) => void;
+  onCreateNew: (name: string) => void;
+}) {
+  const { palette: p } = useStore();
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [newName, setNewName] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState("");
+
+  const filtered = organizations.filter((o) =>
+    o.toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const handleSelect = (org: string) => {
+    onSelect(org);
+    setOpen(false);
+    setSearch("");
+  };
+
+  const handleCreate = () => {
+    const trimmed = newName.trim();
+    if (!trimmed) {
+      setCreateError("Client name cannot be empty.");
+      return;
+    }
+    if (organizations.some((o) => o.toLowerCase() === trimmed.toLowerCase())) {
+      setCreateError("A client with this name already exists.");
+      return;
+    }
+    onCreateNew(trimmed);
+    onSelect(trimmed);
+    setCreating(false);
+    setNewName("");
+    setCreateError("");
+    setOpen(false);
+    setSearch("");
+  };
+
+  return (
+    <View style={{ gap: 6 }}>
+      <T weight="medium" style={{ fontSize: 11 }}>
+        Client organization
+      </T>
+
+      {/* Trigger button */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Select client organization"
+        onPress={() => {
+          setOpen(true);
+          setSearch("");
+          setCreating(false);
+          setNewName("");
+          setCreateError("");
+        }}
+        style={({ pressed }: any) => ({
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingHorizontal: 13,
+          paddingVertical: 10,
+          borderRadius: 8,
+          borderWidth: 1.5,
+          borderColor: p.green,
+          backgroundColor: p.raised,
+          opacity: pressed ? 0.8 : 1,
+        })}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Icon name="business-outline" size={15} color={p.green} />
+          <T weight="semibold" style={{ fontSize: 13, color: p.green }}>
+            {value || "Select a client…"}
+          </T>
+        </View>
+        <Icon name="chevron-down-outline" size={16} color={p.muted} />
+      </Pressable>
+
+      {/* Dropdown modal */}
+      <Modal
+        visible={open}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setOpen(false)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: "#00000055", justifyContent: "center", alignItems: "center", padding: 24 }}
+          onPress={() => setOpen(false)}
+        >
+          <Pressable
+            onPress={() => {}}
+            style={{
+              width: "100%",
+              maxWidth: 420,
+              borderRadius: 14,
+              backgroundColor: p.panel,
+              borderWidth: 1,
+              borderColor: p.border,
+              overflow: "hidden",
+            }}
+          >
+            {/* Header */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: 16,
+                borderBottomWidth: 1,
+                borderColor: p.border,
+              }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Icon name="business-outline" size={16} color={p.green} />
+                <T weight="semibold" style={{ fontSize: 14 }}>
+                  Select Client
+                </T>
+              </View>
+              <Pressable onPress={() => setOpen(false)} accessibilityRole="button" accessibilityLabel="Close dropdown">
+                <Icon name="close-outline" size={20} color={p.muted} />
+              </Pressable>
+            </View>
+
+            {/* Search box */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                paddingHorizontal: 14,
+                paddingVertical: 10,
+                borderBottomWidth: 1,
+                borderColor: p.border,
+                backgroundColor: p.raised,
+              }}
+            >
+              <Icon name="search-outline" size={15} color={p.muted} />
+              <TextInput
+                value={search}
+                onChangeText={setSearch}
+                placeholder="Search clients…"
+                placeholderTextColor={p.subtle}
+                style={{ flex: 1, fontSize: 13, color: p.text, outlineStyle: "none" } as any}
+                autoFocus
+              />
+              {search.length > 0 && (
+                <Pressable onPress={() => setSearch("")} accessibilityRole="button" accessibilityLabel="Clear search">
+                  <Icon name="close-circle-outline" size={16} color={p.muted} />
+                </Pressable>
+              )}
+            </View>
+
+            {/* Client list */}
+            <ScrollView style={{ maxHeight: 240 }} keyboardShouldPersistTaps="handled">
+              {filtered.length === 0 && !creating && (
+                <View style={{ padding: 20, alignItems: "center" }}>
+                  <T muted style={{ fontSize: 12 }}>No clients match "{search}"</T>
+                </View>
+              )}
+              {filtered.map((org) => {
+                const isSelected = org === value;
+                return (
+                  <Pressable
+                    key={org}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Select ${org}`}
+                    onPress={() => handleSelect(org)}
+                    style={({ pressed }: any) => ({
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                      backgroundColor: isSelected
+                        ? p.green + "18"
+                        : pressed
+                          ? p.raised
+                          : "transparent",
+                      borderBottomWidth: 1,
+                      borderColor: p.border + "60",
+                    })}
+                  >
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                      <View
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 6,
+                          backgroundColor: isSelected ? p.green + "25" : p.raised,
+                          borderWidth: 1,
+                          borderColor: isSelected ? p.green : p.border,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Icon
+                          name="business-outline"
+                          size={13}
+                          color={isSelected ? p.green : p.muted}
+                        />
+                      </View>
+                      <T
+                        weight={isSelected ? "semibold" : "regular"}
+                        style={{ fontSize: 13, color: isSelected ? p.green : p.text }}
+                      >
+                        {org}
+                      </T>
+                    </View>
+                    {isSelected && (
+                      <Icon name="checkmark-circle" size={18} color={p.green} />
+                    )}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            {/* Create new client section */}
+            <View
+              style={{
+                borderTopWidth: 1,
+                borderColor: p.border,
+                padding: 14,
+                gap: 10,
+              }}
+            >
+              {!creating ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Create new client"
+                  onPress={() => setCreating(true)}
+                  style={({ pressed }: any) => ({
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: 10,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderStyle: "dashed",
+                    borderColor: p.green + "70",
+                    backgroundColor: p.greenBg + "80",
+                    opacity: pressed ? 0.75 : 1,
+                  })}
+                >
+                  <Icon name="add-circle-outline" size={16} color={p.green} />
+                  <T style={{ fontSize: 12, color: p.green }}>
+                    Create new client organization
+                  </T>
+                </Pressable>
+              ) : (
+                <View style={{ gap: 8 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <Icon name="business-outline" size={14} color={p.green} />
+                    <T weight="medium" style={{ fontSize: 12, color: p.green }}>
+                      New client name
+                    </T>
+                  </View>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 8,
+                      borderWidth: 1.5,
+                      borderColor: p.green,
+                      borderRadius: 8,
+                      paddingHorizontal: 12,
+                      paddingVertical: 8,
+                      backgroundColor: p.raised,
+                    }}
+                  >
+                    <TextInput
+                      value={newName}
+                      onChangeText={(v) => { setNewName(v); setCreateError(""); }}
+                      placeholder="e.g. Acme Technologies Ltd."
+                      placeholderTextColor={p.subtle}
+                      style={{ flex: 1, fontSize: 13, color: p.text, outlineStyle: "none" } as any}
+                      autoFocus
+                      onSubmitEditing={handleCreate}
+                    />
+                  </View>
+                  {!!createError && (
+                    <T style={{ fontSize: 11, color: p.danger }}>{createError}</T>
+                  )}
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <Button
+                      label="Cancel"
+                      variant="ghost"
+                      small
+                      onPress={() => { setCreating(false); setNewName(""); setCreateError(""); }}
+                    />
+                    <Button
+                      label="Add & Select"
+                      icon="checkmark-outline"
+                      small
+                      onPress={handleCreate}
+                    />
+                  </View>
+                </View>
+              )}
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </View>
+  );
+}
+
+/* ─── Main Edit Dialog ───────────────────────────────────────────────────── */
 export function EditCandidateDialog({
   candidate,
   visible,
@@ -18,6 +341,7 @@ export function EditCandidateDialog({
   const {
     palette: p,
     organizations,
+    setOrganizations,
     setCandidates,
     checks,
     log,
@@ -88,6 +412,14 @@ export function EditCandidateDialog({
     onClose();
   };
 
+  const handleCreateNewOrg = (orgName: string) => {
+    setOrganizations((prev) =>
+      prev.includes(orgName) ? prev : [...prev, orgName],
+    );
+    log("Client added", orgName, "business-outline");
+    toast(`Client "${orgName}" created and selected.`);
+  };
+
   const enabledChecks = checks.filter((c) => c.enabled);
 
   return (
@@ -97,43 +429,32 @@ export function EditCandidateDialog({
       title="Edit candidate verification"
       description={`Update case details for ${candidate.id}`}
     >
+      {/* Tab switcher */}
       <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="General details tab"
-          onPress={() => setTab("info")}
-          style={{
-            flex: 1,
-            paddingVertical: 8,
-            alignItems: "center",
-            borderRadius: 6,
-            backgroundColor: tab === "info" ? p.green + "25" : p.raised,
-            borderWidth: 1,
-            borderColor: tab === "info" ? p.green : p.border,
-          }}
-        >
-          <T weight={tab === "info" ? "semibold" : "regular"} style={{ fontSize: 12, color: tab === "info" ? p.green : p.muted }}>
-            General details
-          </T>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Checks tab"
-          onPress={() => setTab("checks")}
-          style={{
-            flex: 1,
-            paddingVertical: 8,
-            alignItems: "center",
-            borderRadius: 6,
-            backgroundColor: tab === "checks" ? p.green + "25" : p.raised,
-            borderWidth: 1,
-            borderColor: tab === "checks" ? p.green : p.border,
-          }}
-        >
-          <T weight={tab === "checks" ? "semibold" : "regular"} style={{ fontSize: 12, color: tab === "checks" ? p.green : p.muted }}>
-            Assigned checks ({selectedChecks.length})
-          </T>
-        </Pressable>
+        {(["info", "checks"] as const).map((t) => (
+          <Pressable
+            key={t}
+            accessibilityRole="button"
+            accessibilityLabel={t === "info" ? "General details tab" : "Checks tab"}
+            onPress={() => setTab(t)}
+            style={{
+              flex: 1,
+              paddingVertical: 8,
+              alignItems: "center",
+              borderRadius: 6,
+              backgroundColor: tab === t ? p.green + "25" : p.raised,
+              borderWidth: 1,
+              borderColor: tab === t ? p.green : p.border,
+            }}
+          >
+            <T
+              weight={tab === t ? "semibold" : "regular"}
+              style={{ fontSize: 12, color: tab === t ? p.green : p.muted }}
+            >
+              {t === "info" ? "General details" : `Assigned checks (${selectedChecks.length})`}
+            </T>
+          </Pressable>
+        ))}
       </View>
 
       {tab === "info" ? (
@@ -160,38 +481,13 @@ export function EditCandidateDialog({
             placeholder="e.g. Senior Security Engineer"
           />
 
-          <View style={{ gap: 6 }}>
-            <T weight="medium" style={{ fontSize: 11 }}>
-              Client organization
-            </T>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={{ flexDirection: "row", gap: 7, paddingVertical: 2 }}>
-                {organizations.map((org) => {
-                  const isSelected = org === company;
-                  return (
-                    <Pressable
-                      key={org}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Select client ${org}`}
-                      onPress={() => setCompany(org)}
-                      style={{
-                        paddingHorizontal: 12,
-                        paddingVertical: 6,
-                        borderRadius: 6,
-                        backgroundColor: isSelected ? p.green + "25" : p.raised,
-                        borderWidth: 1,
-                        borderColor: isSelected ? p.green : p.border,
-                      }}
-                    >
-                      <T style={{ fontSize: 11, color: isSelected ? p.green : p.text }}>
-                        {org}
-                      </T>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </ScrollView>
-          </View>
+          {/* Client dropdown with create new */}
+          <ClientDropdown
+            value={company}
+            organizations={organizations}
+            onSelect={setCompany}
+            onCreateNew={handleCreateNewOrg}
+          />
 
           <View style={{ gap: 6 }}>
             <T weight="medium" style={{ fontSize: 11 }}>

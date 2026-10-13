@@ -182,7 +182,13 @@ export function Donut() {
   ];
   const total = scoped.length || 1;
   const circumference = 2 * Math.PI * 57;
-  let offset = 0;
+  // Pre-compute arc segments to avoid mutating offset inside JSX render
+  let runningOffset = 0;
+  const segments = groups.map((g) => {
+    const start = runningOffset;
+    runningOffset += (g.n / total) * circumference;
+    return { ...g, start };
+  });
   return (
     <View
       style={{
@@ -204,9 +210,7 @@ export function Donut() {
             stroke={p.border}
             strokeWidth={14}
           />
-          {groups.map((g) => {
-            const start = offset;
-            offset += (g.n / total) * circumference;
+          {segments.map((g) => {
             if (g.n === 0) return null;
             return (
               <Circle
@@ -218,7 +222,7 @@ export function Donut() {
                 stroke={g.color}
                 strokeWidth={14}
                 strokeDasharray={`${Math.max(0, (g.n / total) * circumference - 4)} ${circumference}`}
-                strokeDashoffset={String(-start)}
+                strokeDashoffset={String(-g.start)}
                 rotation="-90"
                 origin="76,76"
                 strokeLinecap="round"
