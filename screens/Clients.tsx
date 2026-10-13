@@ -1,0 +1,422 @@
+import React, { useState } from "react";
+import { View, Switch, Pressable, useWindowDimensions } from "react-native";
+import { useStore } from "../lib/store";
+import {
+  Page,
+  PageHeading,
+  T,
+  Panel,
+  Icon,
+  Button,
+  Badge,
+  Search,
+  Dialog,
+  Field,
+  Empty,
+} from "../components/ui";
+import { CandidateTable } from "../components/CandidateTable";
+import { openCase } from "../lib/navigation";
+
+export default function Clients() {
+  const {
+    palette: p,
+    role,
+    candidates,
+    organizations,
+    setOrganizations,
+    checks,
+    clientChecklists,
+    setClientChecklists,
+    log,
+    toast,
+  } = useStore();
+  const { width } = useWindowDimensions();
+  // 
+  const [search, setSearch] = useState("");
+  const [create, setCreate] = useState(false);
+  const [name, setName] = useState("");
+  const [selected, setSelected] = useState<string | null>(null);
+
+  // checklist editor state
+  const [editClient, setEditClient] = useState<string | null>(null);
+  const [editChecks, setEditChecks] = useState<string[]>([]);
+
+  const openChecklistEditor = (company: string) => {
+    const current =
+      clientChecklists[company] ??
+      checks.filter((c) => c.enabled).map((c) => c.id);
+    setEditChecks(current);
+    setEditClient(company);
+  };
+  const enabledChecks = checks.filter((c) => c.enabled);
+
+  const toggleEditCheck = (id: string) =>
+    setEditChecks((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+
+  if (role !== "Admin")
+    return (
+      <Empty
+        icon="lock-closed-outline"
+        title="Administrator access only"
+        description="Client management is available in the Admin portal."
+      />
+    );
+  return (
+    <Page>
+      <PageHeading
+        eyebrow="BETTER HIRING, TOGETHER"
+        title="Your clients. One connected workspace."
+        description="A dedicated view of every organization you support."
+        actions={
+          <Button
+            label="Add client"
+            icon="add"
+            onPress={() => setCreate(true)}
+          />
+        }
+      />
+      <View style={{ marginBottom: 22 }}>
+        <Search
+          value={search}
+          onChange={setSearch}
+          placeholder="Search client organizations..."
+        />
+      </View>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 20 }}>
+        {organizations
+          .filter((c) => c.toLowerCase().includes(search.toLowerCase()))
+          .map((company, i) => {
+            const cases = candidates.filter((c) => c.company === company);
+            const complete = cases.filter(
+              (c) => c.status === "Completed",
+            ).length;
+            const color = [p.green, p.purple, p.blue, p.amber][i % 4];
+            const assignedCount =
+              clientChecklists[company]?.length ?? enabledChecks.length;
+            return (
+              <Panel
+                key={company}
+                style={{
+                  width: width < 650 ? "100%" : width < 1200 ? "48%" : "31.8%",
+                  padding: 23,
+                  gap: 19,
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <View
+                    style={{
+                      height: 46,
+                      width: 46,
+                      borderRadius: 10,
+                      backgroundColor: color + "15",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Icon name="business-outline" color={color} size={24} />
+                  </View>
+                  <Badge label="Active" />
+                </View>
+                <View style={{ gap: 5 }}>
+                  <T weight="semibold" style={{ fontSize: 16 }}>
+                    {company}
+                  </T>
+                  <T muted style={{ fontSize: 11 }}>
+                    Client organization · BGV workspace
+                  </T>
+                </View>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    gap: 25,
+                    paddingVertical: 15,
+                    borderTopWidth: 1,
+                    borderBottomWidth: 1,
+                    borderColor: p.border,
+                  }}
+                >
+                  <View style={{ gap: 5 }}>
+                    <T
+                      weight="heading"
+                      style={{ fontSize: 25, lineHeight: 30 }}
+                    >
+                      {cases.length}
+                    </T>
+                    <T muted style={{ fontSize: 10 }}>
+                      Verifications
+                    </T>
+                  </View>
+                  <View style={{ gap: 5 }}>
+                    <T
+                      weight="heading"
+                      style={{ fontSize: 25, lineHeight: 30, color: p.green }}
+                    >
+                      {complete}
+                    </T>
+                    <T muted style={{ fontSize: 10 }}>
+                      Completed
+                    </T>
+                  </View>
+                  <View style={{ gap: 5 }}>
+                    <T
+                      weight="heading"
+                      style={{ fontSize: 25, lineHeight: 30, color: p.blue }}
+                    >
+                      {assignedCount}
+                    </T>
+                    <T muted style={{ fontSize: 10 }}>
+                      Checks
+                    </T>
+                  </View>
+                </View>
+                <View style={{ gap: 10 }}>
+                  <Button
+                    label={`View ${company.split(" ")[0]} candidates`}
+                    variant="secondary"
+                    icon="arrow-forward-outline"
+                    onPress={() => setSelected(company)}
+                  />
+                  <Button
+                    label="Edit checklist"
+                    variant="secondary"
+                    icon="list-outline"
+                    onPress={() => openChecklistEditor(company)}
+                  />
+                </View>
+              </Panel>
+            );
+          })}
+      </View>
+      {!organizations.some((c) =>
+        c.toLowerCase().includes(search.toLowerCase()),
+      ) && (
+          <Empty
+            title="No clients found"
+            description="Try a different organization name."
+          />
+        )}
+
+      {/* ── Add client dialog ─────────────────────────────────────────────── */}
+      <Dialog
+        visible={create}
+        onClose={() => setCreate(false)}
+        title="Add a client organization"
+        description="Organize new verification cases under a dedicated client."
+      >
+        <Field
+          label="Organization name"
+          accessibilityLabel="Organization name"
+          placeholder="e.g. Northstar Technologies"
+          value={name}
+          onChangeText={setName}
+        />
+        <T muted style={{ fontSize: 11 }}>
+          This creates a local organization, not a login account. You can assign
+          new cases to it from New verification.
+        </T>
+        <Button
+          label="Create organization"
+          disabled={!name.trim()}
+          onPress={() => {
+            if (
+              organizations.some(
+                (c) => c.toLowerCase() === name.trim().toLowerCase(),
+              )
+            ) {
+              toast("An organization with this name already exists.");
+              return;
+            }
+            setOrganizations((cs) => [...cs, name.trim()]);
+            // seed a default checklist for the new client (all enabled)
+            setClientChecklists((prev) => ({
+              ...prev,
+              [name.trim()]: enabledChecks.map((c) => c.id),
+            }));
+            log("Client organization added", name.trim(), "business-outline");
+            setName("");
+            setCreate(false);
+            toast("Client organization created.");
+          }}
+        />
+      </Dialog>
+
+      {/* ── Candidate overview dialog ─────────────────────────────────────── */}
+      <Dialog
+        visible={!!selected}
+        onClose={() => setSelected(null)}
+        title={selected || "Client"}
+        description="Candidates belonging to this organization."
+        width={800}
+      >
+        <CandidateTable
+          items={candidates.filter((c) => c.company === selected).slice(0, 12)}
+          onSelect={(id) => {
+            setSelected(null);
+            openCase(id);
+          }}
+        />
+        <Button
+          label="Close client overview"
+          variant="secondary"
+          onPress={() => setSelected(null)}
+        />
+      </Dialog>
+
+      {/* ── Per-client checklist editor ───────────────────────────────────── */}
+      <Dialog
+        visible={!!editClient}
+        onClose={() => setEditClient(null)}
+        title={`${editClient ?? ""} — Checklist`}
+        description="Choose which checks are included in new cases for this client. This becomes the default when creating a new verification."
+        width={620}
+      >
+        {/* counts */}
+        <View
+          style={{
+            backgroundColor: p.greenBg,
+            padding: 12,
+            borderRadius: 7,
+            flexDirection: "row",
+            gap: 10,
+            alignItems: "center",
+          }}
+        >
+          <Icon name="shield-checkmark-outline" color={p.green} />
+          <T style={{ color: p.green, fontSize: 11, flex: 1 }}>
+            {editChecks.length} of {enabledChecks.length} checks selected
+          </T>
+        </View>
+
+        {/* bulk actions */}
+        <View
+          style={{ flexDirection: "row", gap: 10, justifyContent: "flex-end" }}
+        >
+          <Button
+            label="Select all"
+            variant="ghost"
+            small
+            onPress={() => setEditChecks(enabledChecks.map((c) => c.id))}
+          />
+          <Button
+            label="Clear all"
+            variant="ghost"
+            small
+            onPress={() => setEditChecks([])}
+          />
+        </View>
+
+        {/* toggles */}
+        <View style={{ gap: 8 }}>
+          {enabledChecks.map((c) => {
+            const on = editChecks.includes(c.id);
+            return (
+              <Pressable
+                key={c.id}
+                accessibilityRole="button"
+                accessibilityLabel={`${on ? "Remove" : "Add"} ${c.title} for ${editClient}`}
+                onPress={() => toggleEditCheck(c.id)}
+                style={({ pressed }: any) => ({
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: 12,
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: on ? p.green + "50" : p.border,
+                  backgroundColor: on ? p.greenBg : p.raised,
+                  opacity: pressed ? 0.75 : 1,
+                })}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 10,
+                    flex: 1,
+                  }}
+                >
+                  <View
+                    style={{
+                      padding: 6,
+                      borderRadius: 6,
+                      backgroundColor: c.color + "18",
+                    }}
+                  >
+                    <Icon name={c.icon} color={c.color} size={16} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <T
+                      weight="medium"
+                      style={{ fontSize: 12, color: on ? p.text : p.muted }}
+                    >
+                      {c.title}
+                    </T>
+                    <T muted style={{ fontSize: 10 }}>
+                      {c.category} · {c.days} days
+                    </T>
+                  </View>
+                </View>
+                <View
+                  style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+                >
+                  {c.required && (
+                    <Badge label="Required" color={p.muted} dot={false} />
+                  )}
+                  <Switch
+                    value={on}
+                    onValueChange={() => toggleEditCheck(c.id)}
+                    trackColor={{ false: p.border, true: p.green }}
+                    accessibilityLabel={`Toggle ${c.title}`}
+                  />
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            gap: 10,
+          }}
+        >
+          <Button
+            label="Cancel"
+            variant="secondary"
+            onPress={() => setEditClient(null)}
+          />
+          <Button
+            label="Save checklist"
+            icon="checkmark-outline"
+            onPress={() => {
+              if (editClient) {
+                setClientChecklists((prev) => ({
+                  ...prev,
+                  [editClient]: editChecks,
+                }));
+                log(
+                  "Client checklist updated",
+                  editClient,
+                  "list-outline",
+                  "#77a6ef",
+                );
+                toast(`Checklist saved for ${editClient}.`);
+              }
+              setEditClient(null);
+            }}
+          />
+        </View>
+      </Dialog>
+    </Page>
+  );
+}
+
