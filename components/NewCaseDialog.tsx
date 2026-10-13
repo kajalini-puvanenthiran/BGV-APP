@@ -25,7 +25,7 @@ export function NewCaseDialog({
     setClientChecklists,
     getClientCheckIds,
   } = useStore();
-
+  // declare state variables for new case dialog 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [position, setPosition] = useState("");
@@ -70,14 +70,14 @@ export function NewCaseDialog({
     setError("");
     setStep("checklist");
   };
-
+  // create case logic
   const create = () => {
     if (role === "Candidate" || !settings.newCases || settings.maintenance) {
       setError("New verifications are restricted by your administrator.");
       return;
     }
     if (selectedChecks.length === 0) {
-      setError("Select at least one checklist item for this case.");
+      setError("Select atleast a one checklist item for this case.");
       return;
     }
     const id = "BGV-" + Date.now().toString().slice(-8);

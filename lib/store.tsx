@@ -143,6 +143,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           }
           if (data.settings)
             setSettings({ ...initialSettings, ...data.settings });
+          if (data.candidates && Array.isArray(data.candidates) && data.candidates.length > 0)
+            setCandidates(data.candidates);
+          if (data.uploads && Array.isArray(data.uploads))
+            setUploads(data.uploads);
           if (data.activities) setActivities(data.activities);
           if (data.consented) setConsented(true);
           if (data.selectedCandidate) setSelectedCandidate(data.selectedCandidate);

@@ -375,15 +375,26 @@ export default function CaseDetails({ route, navigation }: any) {
         >
           <Panel style={{ padding: 24, flex: 1, gap: 20 }}>
             <View
-              style={{ flexDirection: "row", alignItems: "center", gap: 15 }}
+              style={{ flexDirection: "row", alignItems: "center", gap: 15, justifyContent: "space-between" }}
             >
-              <Avatar name={candidate.name} color={candidate.color} size={55} />
-              <View>
-                <T weight="semibold" style={{ fontSize: 17 }}>
-                  {candidate.name}
-                </T>
-                <T muted>{candidate.email}</T>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 15 }}>
+                <Avatar name={candidate.name} color={candidate.color} size={55} />
+                <View>
+                  <T weight="semibold" style={{ fontSize: 17 }}>
+                    {candidate.name}
+                  </T>
+                  <T muted>{candidate.email}</T>
+                </View>
               </View>
+              {role !== "Candidate" && (
+                <Button
+                  label="Edit"
+                  icon="create-outline"
+                  variant="ghost"
+                  small
+                  onPress={() => setEditCandidateOpen(true)}
+                />
+              )}
             </View>
             <View style={{ flexDirection: "row", gap: 28 }}>
               <View style={{ gap: 5 }}>
@@ -392,12 +403,25 @@ export default function CaseDetails({ route, navigation }: any) {
                 </T>
                 <Badge label={candidate.status} />
               </View>
-              <View style={{ gap: 5 }}>
-                <T muted style={{ fontSize: 11 }}>
-                  CLIENT
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Edit client assignment"
+                disabled={role === "Candidate"}
+                onPress={() => role !== "Candidate" && setEditCandidateOpen(true)}
+                style={{ gap: 5 }}
+              >
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                  <T muted style={{ fontSize: 11 }}>
+                    CLIENT
+                  </T>
+                  {role !== "Candidate" && (
+                    <Icon name="create-outline" size={11} color={p.green} />
+                  )}
+                </View>
+                <T weight="medium" style={{ color: role !== "Candidate" ? p.green : p.text }}>
+                  {candidate.company}
                 </T>
-                <T weight="medium">{candidate.company}</T>
-              </View>
+              </Pressable>
               <View style={{ gap: 5 }}>
                 <T muted style={{ fontSize: 11 }}>
                   CREATED
