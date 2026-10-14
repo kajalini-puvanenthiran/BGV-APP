@@ -18,7 +18,7 @@ import { CandidateSelectDialog } from "../components/CandidateSelectDialog";
 import { EditCandidateDialog } from "../components/EditCandidateDialog";
 import { DeleteCandidateDialog } from "../components/DeleteCandidateDialog";
 import { Candidate } from "../lib/data";
-
+// Candidate list screen 
 export default function Candidates({
   verification = false,
 }: {
@@ -44,14 +44,14 @@ export default function Candidates({
   const [selectCandidateOpen, setSelectCandidateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Candidate | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Candidate | null>(null);
-
+  // active candidate
   const activeCandidate = candidates.find((c) => c.id === selectedCandidate);
 
   // In Candidate portal, allow browsing all candidates if desired, but default to scoped
   const candidatePool = role === "Candidate" && clientFilter !== "All clients"
     ? candidates.filter((c) => c.company === clientFilter)
     : scoped;
-
+  // filtering candidates
   const filtered = candidatePool.filter(
     (c) =>
       (status === "All statuses" || c.status === status) &&
@@ -60,6 +60,7 @@ export default function Candidates({
         v.toLowerCase().includes(search.toLowerCase()),
       ),
   );
+  // page count logic 
   const pageCount = Math.max(1, Math.ceil(filtered.length / 10));
   const current = Math.min(page, pageCount - 1);
 

@@ -15,7 +15,7 @@ const mime = {
 const server = http.createServer((req, res) => {
   let url;
   try {
-    url = decodeURIComponent(new URL(req.url, "http://localhost").pathname);
+    url = decodeURIComponent(new URL(req.url, "http://localhost/").pathname);
   } catch {
     res.writeHead(400);
     return res.end();

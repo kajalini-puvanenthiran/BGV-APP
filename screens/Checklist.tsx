@@ -114,7 +114,7 @@ export default function Checklist() {
       ),
     ),
   ];
-
+  // selected category 
   const selectedCategory = distinctCategories.includes(category)
     ? category
     : "All checks";
@@ -757,7 +757,7 @@ export default function Checklist() {
               for (const u of relatedUploads) {
                 try {
                   await removeDocument(u.id);
-                } catch {}
+                } catch { }
               }
               setUploads((us) => us.filter((u) => u.checkId !== checkId));
               setChecks((cs) => cs.filter((c) => c.id !== checkId));

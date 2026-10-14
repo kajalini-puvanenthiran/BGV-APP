@@ -30,7 +30,7 @@ export function CandidateSelectDialog({
     log,
   } = useStore();
   const { width } = useWindowDimensions();
-
+  // client state
   const [client, setClient] = useState(
     initialCompany ?? selectedClient ?? "All clients",
   );
@@ -47,9 +47,9 @@ export function CandidateSelectDialog({
       setQuery("");
     }
   }, [visible, initialCompany, selectedClient]);
-
+  // client chips
   const clientChips = useMemo(() => ["All clients", ...organizations], [organizations]);
-
+  // candidate for clients
   const candidatesForClient = useMemo(() => {
     return candidates.filter((c) => {
       const matchClient = client === "All clients" || c.company === client;
@@ -61,7 +61,7 @@ export function CandidateSelectDialog({
       return matchClient && matchQuery;
     });
   }, [candidates, client, query]);
-
+  // client category groups
   const clientCategoryGroups = useMemo(() => {
     const groups: { company: string; candidates: Candidate[] }[] = [];
     const map = new Map<string, Candidate[]>();
@@ -76,7 +76,7 @@ export function CandidateSelectDialog({
     }
     return groups;
   }, [candidatesForClient]);
-
+  // handle select candidate 
   const handleSelect = (candidate: Candidate) => {
     selectCandidateAndClient(candidate.id);
     log(
@@ -194,61 +194,61 @@ export function CandidateSelectDialog({
                           gap: 12,
                         })}
                       >
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 12,
-                        flex: 1,
-                      }}
-                    >
-                      <Avatar name={c.name} color={c.color} size={36} />
-                      <View style={{ flex: 1, gap: 2 }}>
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                          <T weight="semibold" style={{ fontSize: 12 }}>
-                            {c.name}
-                          </T>
-                          {isCurrent && (
-                            <Badge label="Currently selected" color={p.green} />
-                          )}
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 12,
+                            flex: 1,
+                          }}
+                        >
+                          <Avatar name={c.name} color={c.color} size={36} />
+                          <View style={{ flex: 1, gap: 2 }}>
+                            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                              <T weight="semibold" style={{ fontSize: 12 }}>
+                                {c.name}
+                              </T>
+                              {isCurrent && (
+                                <Badge label="Currently selected" color={p.green} />
+                              )}
+                            </View>
+                            <T muted style={{ fontSize: 11 }}>
+                              {c.position} ·{" "}
+                              <T weight="medium" style={{ fontSize: 11, color: p.text }}>
+                                {c.company}
+                              </T>
+                            </T>
+                            <T muted style={{ fontSize: 10 }}>
+                              {c.email} · {c.id}
+                            </T>
+                          </View>
                         </View>
-                        <T muted style={{ fontSize: 11 }}>
-                          {c.position} ·{" "}
-                          <T weight="medium" style={{ fontSize: 11, color: p.text }}>
-                            {c.company}
-                          </T>
-                        </T>
-                        <T muted style={{ fontSize: 10 }}>
-                          {c.email} · {c.id}
-                        </T>
-                      </View>
-                    </View>
 
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 10,
-                        alignSelf: width < 550 ? "flex-end" : "center",
-                      }}
-                    >
-                      <Badge label={c.status} />
-                      <Button
-                        label={isCurrent ? "Selected" : "Select candidate"}
-                        small
-                        variant={isCurrent ? "secondary" : "primary"}
-                        icon={isCurrent ? "checkmark" : "chevron-forward"}
-                        onPress={() => handleSelect(c)}
-                      />
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-          ))
-        )}
-      </ScrollView>
-    </View>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 10,
+                            alignSelf: width < 550 ? "flex-end" : "center",
+                          }}
+                        >
+                          <Badge label={c.status} />
+                          <Button
+                            label={isCurrent ? "Selected" : "Select candidate"}
+                            small
+                            variant={isCurrent ? "secondary" : "primary"}
+                            icon={isCurrent ? "checkmark" : "chevron-forward"}
+                            onPress={() => handleSelect(c)}
+                          />
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ))
+            )}
+          </ScrollView>
+        </View>
 
         <View
           style={{

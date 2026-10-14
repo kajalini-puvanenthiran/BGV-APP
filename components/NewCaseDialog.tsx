@@ -37,7 +37,7 @@ export function NewCaseDialog({
   const [error, setError] = useState("");
   const [step, setStep] = useState<"details" | "checklist">("details");
   const [selectedChecks, setSelectedChecks] = useState<string[]>([]);
-
+  // handle visible state 
   useEffect(() => {
     if (visible) {
       const initial =
@@ -151,46 +151,46 @@ export function NewCaseDialog({
           value={position}
           onChangeText={setPosition}
         />
-          {role === "Admin" && (
-            <View style={{ gap: 8 }}>
-              {presetCompany ? (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: 12,
-                    borderRadius: 7,
-                    borderWidth: 1,
-                    borderColor: p.border,
-                    backgroundColor: p.raised,
-                  }}
-                >
-                  <Icon name="business-outline" color={p.muted} size={16} />
-                  <T weight="semibold" style={{ fontSize: 12, flex: 1 }}>
-                    {presetCompany}
-                  </T>
-                  <Icon name="lock-closed-outline" color={p.subtle} size={13} />
-                </View>
-              ) : (
-                <ClientDropdown
-                  value={company}
-                  organizations={organizations}
-                  onSelect={(org) => {
-                    setCompany(org);
-                    setSelectedChecks(getClientCheckIds(org));
-                  }}
-                  onCreateNew={(orgName) => {
-                    setOrganizations((prev) =>
-                      prev.includes(orgName) ? prev : [...prev, orgName],
-                    );
-                    log("Client added", orgName, "business-outline");
-                    toast(`Client "${orgName}" created and selected.`);
-                  }}
-                />
-              )}
-            </View>
-          )}
+        {role === "Admin" && (
+          <View style={{ gap: 8 }}>
+            {presetCompany ? (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: 12,
+                  borderRadius: 7,
+                  borderWidth: 1,
+                  borderColor: p.border,
+                  backgroundColor: p.raised,
+                }}
+              >
+                <Icon name="business-outline" color={p.muted} size={16} />
+                <T weight="semibold" style={{ fontSize: 12, flex: 1 }}>
+                  {presetCompany}
+                </T>
+                <Icon name="lock-closed-outline" color={p.subtle} size={13} />
+              </View>
+            ) : (
+              <ClientDropdown
+                value={company}
+                organizations={organizations}
+                onSelect={(org) => {
+                  setCompany(org);
+                  setSelectedChecks(getClientCheckIds(org));
+                }}
+                onCreateNew={(orgName) => {
+                  setOrganizations((prev) =>
+                    prev.includes(orgName) ? prev : [...prev, orgName],
+                  );
+                  log("Client added", orgName, "business-outline");
+                  toast(`Client "${orgName}" created and selected.`);
+                }}
+              />
+            )}
+          </View>
+        )}
         {!!error && <T style={{ color: p.danger, fontSize: 12 }}>{error}</T>}
         <T muted style={{ fontSize: 10 }}>
           Local demo: creating a case does not send an email invitation or

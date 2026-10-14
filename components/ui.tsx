@@ -81,6 +81,7 @@ export function Icon({
     />
   );
 }
+// button component for desktop and mobile 
 export function Button({
   label,
   onPress,
@@ -425,6 +426,7 @@ export function Chips({
     </View>
   );
 }
+// page component for desktop and mobile screen
 export function Page({
   children,
   refresh = true,

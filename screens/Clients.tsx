@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { View, Switch, Pressable, useWindowDimensions } from "react-native";
 import { useStore } from "../lib/store";
 import {
@@ -38,22 +38,21 @@ export default function Clients() {
     toast,
   } = useStore();
   const { width } = useWindowDimensions();
-  // 
+  // search text state
   const [search, setSearch] = useState("");
   const [create, setCreate] = useState(false);
   const [name, setName] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
-
-  // organization edit & delete state
+  const [selectedFilter, setSelectedFilter] = useState<"all" | "completed">("all");
+  // edit organization state
   const [editOrg, setEditOrg] = useState<string | null>(null);
   const [editOrgName, setEditOrgName] = useState("");
   const [editOrgError, setEditOrgError] = useState("");
   const [deleteOrg, setDeleteOrg] = useState<string | null>(null);
-
-  // checklist editor state
+  // edit client state
   const [editClient, setEditClient] = useState<string | null>(null);
   const [editChecks, setEditChecks] = useState<string[]>([]);
-
+  // open checklist editor
   const openChecklistEditor = (company: string) => {
     const current =
       clientChecklists[company] ??
@@ -102,9 +101,7 @@ export default function Clients() {
           .filter((c) => c.toLowerCase().includes(search.toLowerCase()))
           .map((company, i) => {
             const cases = candidates.filter((c) => c.company === company);
-            const complete = cases.filter(
-              (c) => c.status === "Completed",
-            ).length;
+            const complete = cases.filter((c) => c.status === "Completed");
             const color = [p.green, p.purple, p.blue, p.amber][i % 4];
             const assignedCount =
               clientChecklists[company]?.length ?? enabledChecks.length;
@@ -117,6 +114,7 @@ export default function Clients() {
                   gap: 19,
                 }}
               >
+                {/* Header: icon + badge + edit/delete icon buttons only */}
                 <View
                   style={{
                     flexDirection: "row",
@@ -156,6 +154,8 @@ export default function Clients() {
                     />
                   </View>
                 </View>
+
+                {/* Company name + subtitle */}
                 <View style={{ gap: 5 }}>
                   <T weight="semibold" style={{ fontSize: 16 }}>
                     {company}
@@ -164,6 +164,8 @@ export default function Clients() {
                     Client organization · BGV workspace
                   </T>
                 </View>
+
+                {/* Clickable stats row */}
                 <View
                   style={{
                     flexDirection: "row",
@@ -174,46 +176,83 @@ export default function Clients() {
                     borderColor: p.border,
                   }}
                 >
-                  <View style={{ gap: 5 }}>
-                    <T
-                      weight="heading"
-                      style={{ fontSize: 25, lineHeight: 30 }}
-                    >
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`View all ${cases.length} verifications for ${company}`}
+                    onPress={() => {
+                      setSelectedFilter("all");
+                      setSelected(company);
+                    }}
+                    style={({ pressed }: any) => ({
+                      gap: 5,
+                      opacity: pressed ? 0.6 : 1,
+                      borderRadius: 6,
+                      paddingHorizontal: 4,
+                      paddingVertical: 2,
+                    })}
+                  >
+                    <T weight="heading" style={{ fontSize: 25, lineHeight: 30 }}>
                       {cases.length}
                     </T>
                     <T muted style={{ fontSize: 10 }}>
                       Verifications
                     </T>
-                  </View>
-                  <View style={{ gap: 5 }}>
-                    <T
-                      weight="heading"
-                      style={{ fontSize: 25, lineHeight: 30, color: p.green }}
-                    >
-                      {complete}
+                  </Pressable>
+
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`View ${complete.length} completed verifications for ${company}`}
+                    onPress={() => {
+                      setSelectedFilter("completed");
+                      setSelected(company);
+                    }}
+                    style={({ pressed }: any) => ({
+                      gap: 5,
+                      opacity: pressed ? 0.6 : 1,
+                      borderRadius: 6,
+                      paddingHorizontal: 4,
+                      paddingVertical: 2,
+                    })}
+                  >
+                    <T weight="heading" style={{ fontSize: 25, lineHeight: 30, color: p.green }}>
+                      {complete.length}
                     </T>
                     <T muted style={{ fontSize: 10 }}>
                       Completed
                     </T>
-                  </View>
-                  <View style={{ gap: 5 }}>
-                    <T
-                      weight="heading"
-                      style={{ fontSize: 25, lineHeight: 30, color: p.blue }}
-                    >
+                  </Pressable>
+
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Edit checklist (${assignedCount} checks) for ${company}`}
+                    onPress={() => openChecklistEditor(company)}
+                    style={({ pressed }: any) => ({
+                      gap: 5,
+                      opacity: pressed ? 0.6 : 1,
+                      borderRadius: 6,
+                      paddingHorizontal: 4,
+                      paddingVertical: 2,
+                    })}
+                  >
+                    <T weight="heading" style={{ fontSize: 25, lineHeight: 30, color: p.blue }}>
                       {assignedCount}
                     </T>
                     <T muted style={{ fontSize: 10 }}>
                       Checks
                     </T>
-                  </View>
+                  </Pressable>
                 </View>
+
+                {/* Action buttons - Edit name / Delete removed, use icons above */}
                 <View style={{ gap: 8 }}>
                   <Button
                     label={`View ${company.split(" ")[0]} candidates`}
                     variant="secondary"
                     icon="arrow-forward-outline"
-                    onPress={() => setSelected(company)}
+                    onPress={() => {
+                      setSelectedFilter("all");
+                      setSelected(company);
+                    }}
                   />
                   <Button
                     label="Edit checklist"
@@ -221,30 +260,6 @@ export default function Clients() {
                     icon="list-outline"
                     onPress={() => openChecklistEditor(company)}
                   />
-                  <View style={{ flexDirection: "row", gap: 8 }}>
-                    <View style={{ flex: 1 }}>
-                      <Button
-                        label="Edit name"
-                        variant="secondary"
-                        icon="create-outline"
-                        small
-                        onPress={() => {
-                          setEditOrg(company);
-                          setEditOrgName(company);
-                          setEditOrgError("");
-                        }}
-                      />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Button
-                        label="Delete"
-                        variant="danger"
-                        icon="trash-outline"
-                        small
-                        onPress={() => setDeleteOrg(company)}
-                      />
-                    </View>
-                  </View>
                 </View>
               </Panel>
             );
@@ -259,7 +274,7 @@ export default function Clients() {
           />
         )}
 
-      {/* ── Add client dialog ─────────────────────────────────────────────── */}
+      {/* Add client dialog */}
       <Dialog
         visible={create}
         onClose={() => setCreate(false)}
@@ -290,7 +305,6 @@ export default function Clients() {
               return;
             }
             setOrganizations((cs) => [...cs, name.trim()]);
-            // seed a default checklist for the new client (all enabled)
             setClientChecklists((prev) => ({
               ...prev,
               [name.trim()]: enabledChecks.map((c) => c.id),
@@ -303,29 +317,38 @@ export default function Clients() {
         />
       </Dialog>
 
-      {/* ── Candidate overview dialog ─────────────────────────────────────── */}
+      {/* Candidate overview dialog - all or completed filter */}
       <Dialog
         visible={!!selected}
         onClose={() => setSelected(null)}
         title={selected || "Client"}
-        description="Candidates belonging to this organization."
+        description={
+          selectedFilter === "completed"
+            ? "Completed verifications for this organization."
+            : "All candidates belonging to this organization."
+        }
         width={800}
       >
         <CandidateTable
-          items={candidates.filter((c) => c.company === selected).slice(0, 12)}
+          items={(selectedFilter === "completed"
+            ? candidates.filter(
+              (c) => c.company === selected && c.status === "Completed",
+            )
+            : candidates.filter((c) => c.company === selected)
+          ).slice(0, 12)}
           onSelect={(id) => {
             setSelected(null);
             openCase(id);
           }}
         />
         <Button
-          label="Close client overview"
+          label="Close overview"
           variant="secondary"
           onPress={() => setSelected(null)}
         />
       </Dialog>
 
-      {/* ── Per-client checklist editor ───────────────────────────────────── */}
+      {/* Per-client checklist editor */}
       <Dialog
         visible={!!editClient}
         onClose={() => setEditClient(null)}
@@ -333,7 +356,6 @@ export default function Clients() {
         description="Choose which checks are included in new cases for this client. This becomes the default when creating a new verification."
         width={620}
       >
-        {/* counts */}
         <View
           style={{
             backgroundColor: p.greenBg,
@@ -350,7 +372,6 @@ export default function Clients() {
           </T>
         </View>
 
-        {/* bulk actions */}
         <View
           style={{ flexDirection: "row", gap: 10, justifyContent: "flex-end" }}
         >
@@ -368,7 +389,6 @@ export default function Clients() {
           />
         </View>
 
-        {/* toggles */}
         <View style={{ gap: 8 }}>
           {enabledChecks.map((c) => {
             const on = editChecks.includes(c.id);
@@ -472,7 +492,7 @@ export default function Clients() {
         </View>
       </Dialog>
 
-      {/* ── Edit client organization dialog ──────────────────────────────── */}
+      {/* Edit client organization dialog */}
       <Dialog
         visible={!!editOrg}
         onClose={() => {
@@ -548,7 +568,7 @@ export default function Clients() {
         </View>
       </Dialog>
 
-      {/* ── Delete client organization dialog ────────────────────────────── */}
+      {/* Delete client organization dialog */}
       <Dialog
         visible={!!deleteOrg}
         onClose={() => setDeleteOrg(null)}
@@ -583,7 +603,7 @@ export default function Clients() {
                 for (const u of cUploads) {
                   try {
                     await removeDocument(u.id);
-                  } catch {}
+                  } catch { }
                 }
               }
               setOrganizations((cs) => cs.filter((c) => c !== target));
@@ -608,4 +628,3 @@ export default function Clients() {
     </Page>
   );
 }
-
